@@ -15,17 +15,16 @@
         tailwind.config = { darkMode: 'class' }
     </script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Cairo', sans-serif; }
         .legal-gradient { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
-        /* تحسين مظهر العناصر في الوضع الليلي */
         .dark .legal-gradient { background: linear-gradient(135deg, #020617 0%, #0f172a 100%); }
         .glass-effect { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
         .dark .glass-effect { background: rgba(0, 0, 0, 0.2); }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-cairo transition-colors duration-300 dark:bg-gray-900 dark:text-gray-100 flex flex-col min-h-screen">
+<body class="bg-[#f3f4f6] text-gray-800 font-cairo transition-colors duration-300 dark:bg-gray-900 dark:text-gray-100 flex flex-col min-h-screen">
 
     <header class="legal-gradient text-white shadow-xl sticky top-0 z-50 transition-all duration-300">
         <div class="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -57,7 +56,7 @@
 
     <div class="legal-gradient pb-12 pt-10 px-4 rounded-b-[3rem] shadow-inner mb-8 transition-all duration-300">
         <div class="container mx-auto max-w-3xl text-center">
-            <h2 class="text-3xl md:text-4xl font-bold text-white mb-8 drop-shadow-md">محرك بحث في رولات وحصر الأحكام</h2>
+            <h2 class="text-3xl md:text-4xl font-bold text-white mb-8 drop-shadow-md">بحث في حصر الأحكام</h2>
             
             <div class="bg-white dark:bg-gray-800 p-2 rounded-full shadow-2xl flex items-center relative z-10 my-6 transition-colors duration-300 focus-within:ring-4 ring-yellow-500/30">
                <span class="pl-4 text-gray-400 dark:text-gray-500">
@@ -77,7 +76,7 @@
         <div id="resultsArea" class="grid grid-cols-1 gap-5 max-w-4xl mx-auto"></div>
     </main>
 
-    <footer class="bg-gray-800 dark:bg-gray-950 text-white text-center py-6 mt-auto transition-colors duration-300">
+    <footer class="bg-gray-800 dark:bg-gray-950 text-white text-center py-6 mt-auto transition-colors duration-300 border-t border-gray-200 dark:border-gray-800">
         <div class="flex justify-center items-center gap-2 mb-2 opacity-50 hover:opacity-80 transition">
              <img src="logo.png" alt="لوجو صغير" class="w-8 h-8 grayscale brightness-150">
         </div>
@@ -102,7 +101,6 @@
         const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
         const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
 
-        // دالة لتطبيق الثيم بناءً على الإعدادات المحفوظة أو تفضيلات النظام
         function applyTheme() {
             if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.classList.add('dark');
@@ -114,15 +112,11 @@
                 themeToggleDarkIcon.classList.remove('hidden');
             }
         }
-
-        // تطبيق الثيم عند تحميل الصفحة
         applyTheme();
 
-        // التبديل عند الضغط على الزر
         themeToggleBtn.addEventListener('click', function() {
             themeToggleDarkIcon.classList.toggle('hidden');
             themeToggleLightIcon.classList.toggle('hidden');
-
             if (localStorage.getItem('color-theme')) {
                 if (localStorage.getItem('color-theme') === 'light') {
                     document.documentElement.classList.add('dark');
