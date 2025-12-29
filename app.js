@@ -25,6 +25,21 @@ window.searchRulings = async function() {
             return;
         }
 
+
+        // أضف هذا الكود في ملف app.js
+
+// دالة البحث المخصصة للفلاتر
+window.filterByYear = function(year) {
+    const searchInput = document.getElementById('searchInput');
+    // نكتب السنة في مربع البحث
+    searchInput.value = year; 
+    // ننفذ البحث فوراً
+    window.searchRulings();
+};
+
+
+
+        
         querySnapshot.forEach((doc) => {
             // تحسين عرض التاريخ (لو كان طويلاً نختصره)
     const displayDate = data.sessionDate || 'غير محدد';
