@@ -10,13 +10,12 @@ window.processExcel = async function() {
 
     const file = fileInput.files[0];
     
-    // --- الذكاء البرمجي: استخراج التاريخ من اسم الملف ---
-    // اسم الملف: "2-9-2024.xlsx" -> النتيجة: "2-9-2024"
-    // ولو الاسم فيه كلام زيادة مثل "2-9-2024 اجندة" سيأخذه كما هو
-    const fileName = file.name.replace(/\.[^/.]+$/, ""); // حذف الامتداد
-    const sessionDate = fileName; // سنستخدم هذا المتغير
+    // استخراج التاريخ من اسم الملف (مثال: 2-9-2024)
+    // هذا التاريخ جزء مهم جداً لمنع التكرار
+    const fileName = file.name.replace(/\.[^/.]+$/, ""); 
+    const sessionDate = fileName.trim(); 
 
-    statusText.innerText = `جاري استخراج البيانات من جلسة: ${sessionDate}...`;
+    statusText.innerText = `جاري المعالجة (جلسة ${sessionDate})...`;
     statusText.classList.remove("text-red-600");
     
     const reader = new FileReader();
@@ -31,8 +30,8 @@ window.processExcel = async function() {
                 const worksheet = workbook.Sheets[sheetName];
                 const jsonSheet = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                // البحث عن رأس الجدول
                 let headerIndex = -1;
+                // البحث عن صف العناوين
                 for (let i = 0; i < jsonSheet.length && i < 30; i++) {
                     const rowStr = JSON.stringify(jsonSheet[i]);
                     if (rowStr.includes("رقم الطعن") || rowStr.includes("سنة") || rowStr.includes("مقام من")) {
@@ -52,25 +51,32 @@ window.processExcel = async function() {
                     const caseNum = cleanRow['رقم الطعن'] || cleanRow['الطعن'];
                     
                     if (caseNum) {
-                        const year = cleanRow['سنة'] || cleanRow['السنة'] || '';
+                        const year = cleanRow['سنة'] || cleanRow['السنة'] || '0';
                         const plaintiff = cleanRow['مقام من'] || cleanRow['المدعي'] || '';
                         const defendant = cleanRow['ضد'] || cleanRow['المدعى عليه'] || '';
                         const decision = (cleanRow['القرار الصادر'] || '') + ' ' + (cleanRow['القرار الصادر 2'] || '');
                         const judge = cleanRow['أسم العضو'] || cleanRow['اسم العضو'] || '';
 
+                        // --- السحر هنا: إنشاء ID مميز ---
+                        // الـ ID سيكون مثل: 1234_54_2-9-2024
+                        // سنقوم بتنظيفه من أي رموز غريبة قد ترفضها قاعدة البيانات
+                        const cleanCaseNum = String(caseNum).replace(/[^a-zA-Z0-9]/g, "");
+                        const cleanYear = String(year).replace(/[^a-zA-Z0-9]/g, "");
+                        const cleanDate = String(sessionDate).replace(/[^a-zA-Z0-9-]/g, "");
+                        
+                        // هذا هو مفتاح المستند
+                        const docID = `${cleanCaseNum}_${cleanYear}_${cleanDate}`;
+
                         const record = {
+                            id: docID, // نخزن الـ ID داخل البيانات أيضاً
                             caseNumber: String(caseNum).trim(),
                             year: String(year).trim(),
                             plaintiff: String(plaintiff).trim(),
                             defendant: String(defendant).trim(),
                             decision: String(decision).trim(),
                             judge: String(judge).trim(),
-                            
-                            // --- إضافة حقل التاريخ الجديد ---
-                            sessionDate: sessionDate, // أخذناه من اسم الملف
-                            
+                            sessionDate: sessionDate,
                             uploadedAt: new Date(),
-                            // نضيف التاريخ لكلمات البحث أيضاً
                             searchKeywords: generateKeywords(caseNum, year, plaintiff, defendant, decision, sessionDate)
                         };
                         allRows.push(record);
@@ -79,12 +85,11 @@ window.processExcel = async function() {
             });
 
             if (allRows.length === 0) {
-                statusText.innerText = "لم يتم العثور على بيانات!";
-                statusText.classList.add("text-red-600");
+                statusText.innerText = "الملف فارغ أو التنسيق غير معروف!";
                 return;
             }
 
-            statusText.innerText = `جاري رفع ${allRows.length} حكم لتاريخ ${sessionDate}...`;
+            statusText.innerText = `جاري تحديث/إضافة ${allRows.length} حكم...`;
             
             const batchSize = 450; 
             let batches = [];
@@ -92,8 +97,13 @@ window.processExcel = async function() {
             let count = 0;
 
             allRows.forEach(docData => {
-                const docRef = doc(collection(db, "rulings"));
-                currentBatch.set(docRef, docData);
+                // بدلاً من doc(collection(...)) التي تنشئ ID عشوائي
+                // نستخدم doc(db, "rulings", docData.id) لنحدد نحن الـ ID
+                const docRef = doc(db, "rulings", docData.id);
+                
+                // set بدلاً من add لضمان التحديث لو كان موجوداً
+                currentBatch.set(docRef, docData); 
+                
                 count++;
                 if (count === batchSize) {
                     batches.push(currentBatch);
@@ -108,8 +118,8 @@ window.processExcel = async function() {
                 progressBar.style.width = Math.round(((i+1)/batches.length)*100) + "%";
             }
 
-            statusText.innerText = "تم الرفع بنجاح! ✅";
-            alert(`تم رفع الجلسة ${sessionDate} بنجاح.`);
+            statusText.innerText = "تمت المزامنة بنجاح! ✅ (لن يتم تكرار البيانات)";
+            alert(`تم معالجة ${allRows.length} سجل. البيانات المكررة تم تحديثها، والجديدة تم إضافتها.`);
 
         } catch (err) {
             console.error(err);
@@ -120,7 +130,6 @@ window.processExcel = async function() {
 };
 
 function generateKeywords(caseNum, year, p, d, dec, date) {
-    // دمجنا التاريخ في البحث
     let text = `${caseNum} ${year} ${p} ${d} ${dec} ${date}`;
     return text.split(" ")
         .map(w => w.trim())
