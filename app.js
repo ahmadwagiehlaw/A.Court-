@@ -1,73 +1,81 @@
-// app.js
 import { db } from "./firebase-config.js";
 import { collection, query, where, getDocs, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// دالة البحث الرئيسية
+let debounceTimer;
+
+// دالة البحث (تعمل أوتوماتيكياً)
 window.searchRulings = async function() {
     const inputVal = document.getElementById('searchInput').value.trim();
     const resultsArea = document.getElementById('resultsArea');
     
+    // لو مسح الكلام، نخفي النتائج
     if (inputVal.length < 1) { 
-        alert("اكتب كلمة للبحث"); 
+        resultsArea.innerHTML = '';
         return; 
     }
     
-    // مؤشر التحميل
+    // مؤشر تحميل صغير
     resultsArea.innerHTML = `
-        <div class="text-center py-10">
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-900 mx-auto"></div>
-            <p class="mt-2 text-gray-500">جاري البحث...</p>
+        <div class="flex justify-center items-center py-6 text-gray-500">
+            <svg class="animate-spin h-5 w-5 mr-3 text-blue-900" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            جاري البحث...
         </div>`;
 
     try {
-        // البحث داخل مصفوفة الكلمات المفتاحية
         const q = query(
             collection(db, "rulings"),
             where("searchKeywords", "array-contains", inputVal),
-            limit(30) // أقصى عدد نتائج
+            limit(20)
         );
 
         const querySnapshot = await getDocs(q);
-        resultsArea.innerHTML = ''; // مسح اللودر
+        resultsArea.innerHTML = ''; 
 
         if (querySnapshot.empty) {
             resultsArea.innerHTML = `
-                <div class="text-center py-8 bg-white rounded shadow">
-                    <p class="text-lg text-gray-600">لا توجد نتائج مطابقة لـ "${inputVal}"</p>
+                <div class="text-center py-4 bg-white rounded shadow text-gray-500 text-sm">
+                    لا توجد نتائج لـ "${inputVal}"
                 </div>`;
             return;
         }
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            const dateDisplay = data.sessionDate || 'غير محدد';
             
-            // تصميم الكارت
+            // تنسيق القيم الفارغة
+            const show = (val) => val && val !== 'undefined' ? val : '-';
+
             const card = `
-                <div class="bg-white p-5 rounded-lg shadow-md border-r-4 border-yellow-500 hover:shadow-xl transition-all duration-300">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <h3 class="font-bold text-xl text-gray-800">
-                                طعن رقم ${data.caseNumber} 
-                                <span class="text-sm font-normal text-gray-500 mr-2">سنة ${data.year}</span>
-                            </h3>
+                <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 mb-3 border border-gray-200 overflow-hidden">
+                    
+                    <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-blue-900 text-lg">📝 ${data.caseNumber}</span>
+                            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">سنة ${data.year}</span>
+                            ${data.dataClass ? `<span class="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">${data.dataClass}</span>` : ''}
                         </div>
-                        <div class="bg-blue-50 text-blue-900 text-xs font-bold px-3 py-1 rounded-full border border-blue-200">
-                            جلسة: ${dateDisplay}
+                        <div class="text-xs text-gray-500 font-bold">
+                            📅 ${show(data.sessionDate)}
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700 mb-4 bg-gray-50 p-3 rounded border border-gray-100">
-                        <p><span class="font-bold text-gray-900">المدعي:</span> ${data.plaintiff}</p>
-                        <p><span class="font-bold text-gray-900">ضد:</span> ${data.defendant}</p>
-                        <p class="md:col-span-2"><span class="font-bold text-gray-900">عضو الدائرة:</span> ${data.judge}</p>
+                    <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-700">
+                        <p><span class="font-bold text-gray-400 ml-1">الطاعن:</span> ${show(data.plaintiff)}</p>
+                        <p><span class="font-bold text-gray-400 ml-1">المطعون ضده:</span> ${show(data.defendant)}</p>
+                        <p><span class="font-bold text-gray-400 ml-1">القاضي:</span> ${show(data.judge)}</p>
+                        <p><span class="font-bold text-gray-400 ml-1">الرول:</span> ${show(data.roll)} | <span class="font-bold text-gray-400 ml-1">توزيع:</span> ${show(data.distLetter)}</p>
                     </div>
 
-                    <div class="mt-2">
-                        <h4 class="text-xs font-bold text-gray-400 uppercase mb-1">القرار / المنطوق:</h4>
-                        <p class="text-gray-800 leading-relaxed text-sm font-medium pr-2 border-r-2 border-gray-300">
-                            ${data.decision || 'لا يوجد تفاصيل للقرار'}
-                        </p>
+                    <div class="px-4 pb-2">
+                        <div class="bg-yellow-50 p-3 rounded border border-yellow-100 text-gray-800 text-sm leading-relaxed">
+                            <span class="font-bold text-yellow-700 block mb-1 text-xs">منطوق الحكم:</span>
+                            ${show(data.decision)}
+                        </div>
+                    </div>
+
+                    <div class="px-4 py-2 bg-gray-50 text-xs text-gray-400 flex justify-between border-t border-gray-100">
+                        <span>🏷️ المصدر: ${show(data.dataSource)}</span>
+                        ${data.notes ? `<span class="text-red-400 font-bold">⚠️ ${data.notes}</span>` : ''}
                     </div>
                 </div>
             `;
@@ -75,24 +83,27 @@ window.searchRulings = async function() {
         });
 
     } catch (e) {
-        console.error("Search Error:", e);
-        // التحقق مما إذا كان الخطأ بسبب الفهرسة
+        console.error(e);
         if(e.message.includes("index")) {
-            resultsArea.innerHTML = '<p class="text-red-600 text-center font-bold">⚠️ خطأ: قاعدة البيانات تحتاج لفهرسة (Index). راجع الـ Console.</p>';
-        } else {
-            resultsArea.innerHTML = '<p class="text-red-500 text-center">حدث خطأ في الاتصال. تأكد من الإنترنت.</p>';
+            resultsArea.innerHTML = '<div class="p-4 bg-red-100 text-red-700 rounded text-center text-sm">مطلوب تفعيل الفهرسة (Index). راجع الـ Console.</div>';
         }
     }
 };
 
-// دالة الفلترة السريعة (مربوطة بأزرار السنوات)
+// --- تفعيل البحث اللحظي (Debounce) ---
+// هذا الكود يجعل البحث يعمل وأنت تكتب، لكن ينتظر قليلاً لعدم إرهاق السيرفر
+const searchInput = document.getElementById('searchInput');
+
+searchInput.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    // انتظر 300 مللي ثانية بعد التوقف عن الكتابة ثم ابحث
+    debounceTimer = setTimeout(() => {
+        window.searchRulings();
+    }, 400); 
+});
+
+// الفلترة بالسنة
 window.filterByYear = function(year) {
-    const searchInput = document.getElementById('searchInput');
     searchInput.value = year;
     window.searchRulings();
 };
-
-// تشغيل زر Enter
-document.getElementById('searchInput').addEventListener("keypress", (e) => {
-    if (e.key === "Enter") window.searchRulings();
-});
