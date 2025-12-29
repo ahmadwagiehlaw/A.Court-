@@ -5,23 +5,23 @@ window.processExcel = async function() {
     const fileInput = document.getElementById('excelFile');
     const statusText = document.getElementById('statusText');
     const progressBar = document.getElementById('progressBar');
-    const statusArea = document.getElementById('statusArea'); // 1. استدعينا العنصر الأب
+    const statusArea = document.getElementById('statusArea');
     
-    if (!fileInput.files.length) { alert("اختر الملف أولاً"); return; }
+    if (!fileInput.files.length) { alert("من فضلك اختر ملفاً أولاً"); return; }
 
+    // 1. استخراج التاريخ من اسم الملف
     const file = fileInput.files[0];
-    const fileName = file.name.replace(/\.[^/.]+$/, ""); 
+    const fileName = file.name.replace(/\.[^/.]+$/, ""); // إزالة الامتداد
     const sessionDate = fileName.trim(); 
 
-    // 2. أهم خطوة: إظهار شريط التحميل وتصفيره
-    statusArea.classList.remove('hidden'); 
+    // إعداد واجهة التحميل
+    statusArea.classList.remove('hidden');
     progressBar.style.width = "0%";
-    progressBar.classList.remove('bg-green-600');
+    progressBar.classList.remove('bg-green-600'); 
     progressBar.classList.add('bg-blue-600');
-
-    statusText.innerText = `جاري تحليل ملف جلسة ${sessionDate}...`;
+    statusText.innerText = `جاري قراءة الملف: ${sessionDate}...`;
     statusText.classList.remove("text-red-600");
-    
+
     const reader = new FileReader();
 
     reader.onload = async function(e) {
@@ -30,10 +30,12 @@ window.processExcel = async function() {
             const workbook = XLSX.read(data, { type: 'array' });
             let allRows = [];
 
+            // 2. الدوران على كل الشيتات
             workbook.SheetNames.forEach(sheetName => {
                 const worksheet = workbook.Sheets[sheetName];
                 const jsonSheet = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
+                // البحث عن بداية الجدول
                 let headerIndex = -1;
                 for (let i = 0; i < jsonSheet.length && i < 30; i++) {
                     const rowStr = JSON.stringify(jsonSheet[i]);
@@ -43,10 +45,11 @@ window.processExcel = async function() {
                     }
                 }
 
-                if (headerIndex === -1) return;
+                if (headerIndex === -1) return; // تخطي الشيتات الفارغة
 
                 const rawData = XLSX.utils.sheet_to_json(worksheet, { range: headerIndex });
 
+                // تنظيف البيانات وتجهيزها
                 rawData.forEach(row => {
                     let cleanRow = {};
                     for (let key in row) cleanRow[key.trim()] = row[key];
@@ -60,7 +63,7 @@ window.processExcel = async function() {
                         const decision = (cleanRow['القرار الصادر'] || '') + ' ' + (cleanRow['القرار الصادر 2'] || '');
                         const judge = cleanRow['أسم العضو'] || cleanRow['اسم العضو'] || '';
 
-                        // توليد الـ ID لمنع التكرار
+                        // توليد ID فريد لمنع التكرار
                         const cleanCaseNum = String(caseNum).replace(/[^a-zA-Z0-9]/g, "");
                         const cleanYear = String(year).replace(/[^a-zA-Z0-9]/g, "");
                         const cleanDate = String(sessionDate).replace(/[^a-zA-Z0-9-]/g, "");
@@ -76,6 +79,7 @@ window.processExcel = async function() {
                             judge: String(judge).trim(),
                             sessionDate: sessionDate,
                             uploadedAt: new Date(),
+                            // توليد كلمات البحث (بما فيها الأجزاء)
                             searchKeywords: generateKeywords(caseNum, year, plaintiff, defendant, decision, sessionDate)
                         };
                         allRows.push(record);
@@ -84,11 +88,12 @@ window.processExcel = async function() {
             });
 
             if (allRows.length === 0) {
-                statusText.innerText = "الملف فارغ أو التنسيق غير معروف!";
+                statusText.innerText = "لم يتم العثور على بيانات صالحة!";
                 statusText.classList.add("text-red-600");
                 return;
             }
 
+            // 3. الرفع لفايربيس (Batching)
             statusText.innerText = `جاري معالجة ${allRows.length} حكم...`;
             
             const batchSize = 450; 
@@ -97,8 +102,8 @@ window.processExcel = async function() {
             let count = 0;
 
             allRows.forEach(docData => {
-                const docRef = doc(db, "rulings", docData.id);
-                currentBatch.set(docRef, docData); 
+                const docRef = doc(db, "rulings", docData.id); // استخدام الـ ID المخصص
+                currentBatch.set(docRef, docData); // Set لتحديث البيانات لو موجودة
                 count++;
                 if (count === batchSize) {
                     batches.push(currentBatch);
@@ -108,10 +113,9 @@ window.processExcel = async function() {
             });
             if (count > 0) batches.push(currentBatch);
 
-            // تنفيذ الرفع وتحديث الشريط
+            // تنفيذ الرفع
             for (let i = 0; i < batches.length; i++) {
                 await batches[i].commit();
-                // تحديث النسبة المئوية
                 let percent = Math.round(((i+1)/batches.length)*100);
                 progressBar.style.width = percent + "%";
                 statusText.innerText = `تم رفع ${percent}% ...`;
@@ -120,33 +124,33 @@ window.processExcel = async function() {
             statusText.innerText = "تم الرفع بنجاح! ✅";
             progressBar.classList.remove('bg-blue-600');
             progressBar.classList.add('bg-green-600');
-            alert(`تم الانتهاء! تمت معالجة ${allRows.length} حكم.`);
+            alert(`تم بنجاح معالجة ${allRows.length} حكم.`);
 
         } catch (err) {
             console.error(err);
-            statusText.innerText = "خطأ: " + err.message;
+            statusText.innerText = "حدث خطأ: " + err.message;
             statusText.classList.add("text-red-600");
         }
     };
     reader.readAsArrayBuffer(file);
 };
 
-// في نهاية ملف admin.js
+// دالة توليد كلمات البحث (معدلة للبحث الجزئي)
 function generateKeywords(caseNum, year, p, d, dec, date) {
     let keywords = [];
 
-    // 1. تقطيع رقم الدعوى لتمكين البحث الجزئي
-    // لو الرقم 1234 -> سنخزن: "1", "12", "123", "1234"
+    // 1. تقسيم رقم الطعن لأجزاء (للبحث الجزئي)
+    // مثال: 1234 -> يخزن: "1", "12", "123", "1234"
     let c = String(caseNum).trim();
     for (let i = 1; i <= c.length; i++) {
         keywords.push(c.substring(0, i));
     }
 
-    // 2. إضافة باقي البيانات ككلمات مفتاحية
+    // 2. باقي الكلمات
     let text = `${year} ${p} ${d} ${dec} ${date}`;
     let otherWords = text.split(" ")
         .map(w => w.trim())
-        .filter(w => w.length > 2); // الكلمات العادية أكبر من حرفين
+        .filter(w => w.length > 2); // نخزن الكلمات الأكبر من حرفين
 
     return [...keywords, ...otherWords];
 }
