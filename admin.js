@@ -5,17 +5,21 @@ window.processExcel = async function() {
     const fileInput = document.getElementById('excelFile');
     const statusText = document.getElementById('statusText');
     const progressBar = document.getElementById('progressBar');
+    const statusArea = document.getElementById('statusArea'); // 1. استدعينا العنصر الأب
     
     if (!fileInput.files.length) { alert("اختر الملف أولاً"); return; }
 
     const file = fileInput.files[0];
-    
-    // استخراج التاريخ من اسم الملف (مثال: 2-9-2024)
-    // هذا التاريخ جزء مهم جداً لمنع التكرار
     const fileName = file.name.replace(/\.[^/.]+$/, ""); 
     const sessionDate = fileName.trim(); 
 
-    statusText.innerText = `جاري المعالجة (جلسة ${sessionDate})...`;
+    // 2. أهم خطوة: إظهار شريط التحميل وتصفيره
+    statusArea.classList.remove('hidden'); 
+    progressBar.style.width = "0%";
+    progressBar.classList.remove('bg-green-600');
+    progressBar.classList.add('bg-blue-600');
+
+    statusText.innerText = `جاري تحليل ملف جلسة ${sessionDate}...`;
     statusText.classList.remove("text-red-600");
     
     const reader = new FileReader();
@@ -31,7 +35,6 @@ window.processExcel = async function() {
                 const jsonSheet = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
                 let headerIndex = -1;
-                // البحث عن صف العناوين
                 for (let i = 0; i < jsonSheet.length && i < 30; i++) {
                     const rowStr = JSON.stringify(jsonSheet[i]);
                     if (rowStr.includes("رقم الطعن") || rowStr.includes("سنة") || rowStr.includes("مقام من")) {
@@ -57,18 +60,14 @@ window.processExcel = async function() {
                         const decision = (cleanRow['القرار الصادر'] || '') + ' ' + (cleanRow['القرار الصادر 2'] || '');
                         const judge = cleanRow['أسم العضو'] || cleanRow['اسم العضو'] || '';
 
-                        // --- السحر هنا: إنشاء ID مميز ---
-                        // الـ ID سيكون مثل: 1234_54_2-9-2024
-                        // سنقوم بتنظيفه من أي رموز غريبة قد ترفضها قاعدة البيانات
+                        // توليد الـ ID لمنع التكرار
                         const cleanCaseNum = String(caseNum).replace(/[^a-zA-Z0-9]/g, "");
                         const cleanYear = String(year).replace(/[^a-zA-Z0-9]/g, "");
                         const cleanDate = String(sessionDate).replace(/[^a-zA-Z0-9-]/g, "");
-                        
-                        // هذا هو مفتاح المستند
                         const docID = `${cleanCaseNum}_${cleanYear}_${cleanDate}`;
 
                         const record = {
-                            id: docID, // نخزن الـ ID داخل البيانات أيضاً
+                            id: docID,
                             caseNumber: String(caseNum).trim(),
                             year: String(year).trim(),
                             plaintiff: String(plaintiff).trim(),
@@ -86,10 +85,11 @@ window.processExcel = async function() {
 
             if (allRows.length === 0) {
                 statusText.innerText = "الملف فارغ أو التنسيق غير معروف!";
+                statusText.classList.add("text-red-600");
                 return;
             }
 
-            statusText.innerText = `جاري تحديث/إضافة ${allRows.length} حكم...`;
+            statusText.innerText = `جاري معالجة ${allRows.length} حكم...`;
             
             const batchSize = 450; 
             let batches = [];
@@ -97,13 +97,8 @@ window.processExcel = async function() {
             let count = 0;
 
             allRows.forEach(docData => {
-                // بدلاً من doc(collection(...)) التي تنشئ ID عشوائي
-                // نستخدم doc(db, "rulings", docData.id) لنحدد نحن الـ ID
                 const docRef = doc(db, "rulings", docData.id);
-                
-                // set بدلاً من add لضمان التحديث لو كان موجوداً
                 currentBatch.set(docRef, docData); 
-                
                 count++;
                 if (count === batchSize) {
                     batches.push(currentBatch);
@@ -113,17 +108,24 @@ window.processExcel = async function() {
             });
             if (count > 0) batches.push(currentBatch);
 
+            // تنفيذ الرفع وتحديث الشريط
             for (let i = 0; i < batches.length; i++) {
                 await batches[i].commit();
-                progressBar.style.width = Math.round(((i+1)/batches.length)*100) + "%";
+                // تحديث النسبة المئوية
+                let percent = Math.round(((i+1)/batches.length)*100);
+                progressBar.style.width = percent + "%";
+                statusText.innerText = `تم رفع ${percent}% ...`;
             }
 
-            statusText.innerText = "تمت المزامنة بنجاح! ✅ (لن يتم تكرار البيانات)";
-            alert(`تم معالجة ${allRows.length} سجل. البيانات المكررة تم تحديثها، والجديدة تم إضافتها.`);
+            statusText.innerText = "تم الرفع بنجاح! ✅";
+            progressBar.classList.remove('bg-blue-600');
+            progressBar.classList.add('bg-green-600');
+            alert(`تم الانتهاء! تمت معالجة ${allRows.length} حكم.`);
 
         } catch (err) {
             console.error(err);
             statusText.innerText = "خطأ: " + err.message;
+            statusText.classList.add("text-red-600");
         }
     };
     reader.readAsArrayBuffer(file);
