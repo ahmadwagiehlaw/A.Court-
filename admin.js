@@ -131,9 +131,22 @@ window.processExcel = async function() {
     reader.readAsArrayBuffer(file);
 };
 
+// في نهاية ملف admin.js
 function generateKeywords(caseNum, year, p, d, dec, date) {
-    let text = `${caseNum} ${year} ${p} ${d} ${dec} ${date}`;
-    return text.split(" ")
+    let keywords = [];
+
+    // 1. تقطيع رقم الدعوى لتمكين البحث الجزئي
+    // لو الرقم 1234 -> سنخزن: "1", "12", "123", "1234"
+    let c = String(caseNum).trim();
+    for (let i = 1; i <= c.length; i++) {
+        keywords.push(c.substring(0, i));
+    }
+
+    // 2. إضافة باقي البيانات ككلمات مفتاحية
+    let text = `${year} ${p} ${d} ${dec} ${date}`;
+    let otherWords = text.split(" ")
         .map(w => w.trim())
-        .filter(w => w.length > 2);
+        .filter(w => w.length > 2); // الكلمات العادية أكبر من حرفين
+
+    return [...keywords, ...otherWords];
 }
