@@ -4,63 +4,83 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>محرك بحث المحكمة الإدارية العليا</title>
+    <link rel="icon" href="logo.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Cairo', sans-serif; }
         .legal-gradient { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+        /* تأثير زجاجي خفيف للخلفيات */
+        .glass-effect { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-100 text-gray-800 font-cairo">
 
     <header class="legal-gradient text-white shadow-lg sticky top-0 z-50">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <svg class="w-10 h-10 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
+            <div class="flex items-center gap-4">
+                <img src="logo.png" alt="لوجو المحكمة" class="w-14 h-14 object-contain drop-shadow-md">
                 <div>
-                    <h1 class="text-xl font-bold leading-tight">أحكام الإدارية العليا</h1>
-                    <h2 class="text-yellow-400 font-bold text-xs tracking-wide mt-1 border-t border-blue-800 pt-1 inline-block">
+                    <h1 class="text-2xl font-bold leading-tight text-yellow-50">أحكام الإدارية العليا</h1>
+                    <h2 class="text-yellow-400 font-semibold text-sm tracking-wide mt-1 border-t border-blue-800 pt-1 inline-block opacity-90">
                         الدائرة العاشرة - موضوع
                     </h2>
                 </div>
             </div>
-            <a href="admin.html" class="text-xs text-gray-400 hover:text-white border border-gray-600 rounded px-3 py-1 transition">إدارة</a>
+            
+            <button onclick="checkAdmin()" class="text-gray-300 hover:text-white hover:bg-white/10 p-2 rounded-full transition duration-300" title="إدارة البيانات">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
         </div>
     </header>
 
-    <div class="legal-gradient pb-12 pt-8 px-4">
+    <div class="legal-gradient pb-10 pt-8 px-4 rounded-b-[3rem] shadow-inner mb-8">
         <div class="container mx-auto max-w-3xl text-center">
-            <h2 class="text-2xl font-bold text-white mb-6">بحث في السوابق القضائية</h2>
+            <h2 class="text-3xl font-bold text-white mb-6 drop-shadow-sm">بحث في السوابق القضائية والمبادئ</h2>
             
-            <div class="bg-white p-2 rounded-lg shadow-xl flex flex-col md:flex-row gap-2">
-                <input type="text" id="searchInput" placeholder="ابحث برقم الطعن، الاسم، السنة..." 
-       class="flex-grow p-3 rounded-md border border-gray-300 focus:outline-none focus:border-blue-900 text-lg shadow-inner">
-                <button onclick="searchRulings()" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-8 rounded-md transition duration-300 flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    بحث
-                </button>
+            <div class="bg-white p-1.5 rounded-full shadow-2xl flex items-center relative z-10 my-6">
+               <span class="pl-3 text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+               </span>
+                <input type="text" id="searchInput" placeholder="ابحث برقم الطعن، اسم الخصم، السنة..." 
+                    class="flex-grow p-3 rounded-full focus:outline-none text-lg text-gray-700 placeholder-gray-400" autocomplete="off">
             </div>
             
-            <div class="mt-5 flex flex-wrap justify-center gap-2 text-sm text-gray-300">
-                <span class="py-1">تصفية سريعة بالسنة:</span>
-                <button onclick="filterByYear('54')" class="hover:text-white hover:bg-blue-800 border border-gray-600 rounded-full px-3 py-1 transition">54</button>
-                <button onclick="filterByYear('55')" class="hover:text-white hover:bg-blue-800 border border-gray-600 rounded-full px-3 py-1 transition">55</button>
-                <button onclick="filterByYear('56')" class="hover:text-white hover:bg-blue-800 border border-gray-600 rounded-full px-3 py-1 transition">56</button>
-                <button onclick="filterByYear('57')" class="hover:text-white hover:bg-blue-800 border border-gray-600 rounded-full px-3 py-1 transition">57</button>
-                <button onclick="filterByYear('58')" class="hover:text-white hover:bg-blue-800 border border-gray-600 rounded-full px-3 py-1 transition">58</button>
-                <button onclick="filterByYear('59')" class="hover:text-white hover:bg-blue-800 border border-gray-600 rounded-full px-3 py-1 transition">59</button>
-            </div>
+            <div id="searchStatsArea" class="mt-6 flex flex-wrap justify-center gap-3 text-sm text-gray-200 min-h-[2rem]">
+                </div>
         </div>
     </div>
 
-    <main class="container mx-auto px-4 py-8 -mt-8">
-        <div id="resultsArea" class="grid grid-cols-1 gap-4"></div>
+    <main class="container mx-auto px-4 pb-12">
+        <div id="resultsArea" class="grid grid-cols-1 gap-5 max-w-4xl mx-auto"></div>
     </main>
 
-    <footer class="bg-gray-800 text-white text-center py-6 mt-10">
-        <p class="text-sm text-gray-400">جميع الحقوق محفوظة &copy; 2024</p>
+    <footer class="bg-gray-800 text-white text-center py-6 mt-auto">
+        <div class="flex justify-center items-center gap-2 mb-2 opacity-50">
+             <img src="logo.png" alt="لوجو صغير" class="w-8 h-8 grayscale">
+        </div>
+        <p class="text-sm text-gray-400">جميع الحقوق محفوظة &copy; 2024 - مجلس الدولة</p>
     </footer>
 
     <script type="module" src="app.js"></script>
+    
+    <script>
+        function checkAdmin() {
+            // هذه طريقة حماية بسيطة جداً (Client-side)
+            // في التطبيقات الحقيقية يجب أن تكون الحماية من السيرفر (Firebase Auth)
+            // لكنها تفي بالغرض كـ "قفل" بسيط لمنع الدخول العرضي
+            const password = prompt("🔐 منطقة محمية\nمن فضلك أدخل كلمة مرور المسؤول:");
+            if (password === "admin123") { // يمكنك تغيير كلمة السر هنا
+                window.location.href = "admin.html";
+            } else if (password !== null) {
+                alert("❌ كلمة المرور غير صحيحة!");
+            }
+        }
+    </script>
 </body>
 </html>
