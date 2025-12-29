@@ -6,6 +6,7 @@
     <title>الإدارية العليا</title>
     <link rel="icon" href="logo.png" type="image/png">
     <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0f172a">
@@ -31,7 +32,7 @@
             <div class="flex items-center gap-4">
                 <img src="logo.png" alt="لوجو المحكمة" class="w-16 h-16 md:w-20 md:h-20 object-contain drop-shadow-lg hover:scale-105 transition-transform duration-300">
                 <div>
-                    <h1 class="text-xl md:text-2xl font-extrabold leading-tight text-yellow-50 drop-shadow-sm"> الإدارية العليا (أ)</h1>
+                    <h1 class="text-xl md:text-2xl font-extrabold leading-tight text-yellow-50 drop-shadow-sm">(أ) الإدارية العليا</h1>
                     <h2 class="text-yellow-400 font-bold text-xs md:text-sm tracking-wide mt-1 border-t border-blue-800/50 pt-1 inline-block opacity-90">
                         الدائرة العاشرة - إزالات
                     </h2>
@@ -39,6 +40,12 @@
             </div>
             
             <div class="flex items-center gap-2">
+                <button id="install-button" class="hidden text-gray-300 hover:text-green-400 hover:bg-white/10 p-2 rounded-full transition duration-300 focus:outline-none ring-2 ring-transparent focus:ring-green-400/50 animate-pulse" title="تثبيت التطبيق على الجهاز">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                </button>
+
                 <button id="theme-toggle" type="button" class="text-gray-300 hover:text-yellow-400 hover:bg-white/10 p-2 rounded-full transition duration-300 focus:outline-none ring-2 ring-transparent focus:ring-yellow-400/50">
                     <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 011.414-1.414zM12 10a2 2 0 100 4 2 2 0 000-4z" /></svg>
                     <svg id="theme-toggle-dark-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
@@ -80,7 +87,7 @@
         <div class="flex justify-center items-center gap-2 mb-1 opacity-50 hover:opacity-80 transition">
              <img src="logo.png" alt="لوجو صغير" class="w-6 h-6 grayscale brightness-150">
         </div>
-        <p class="text-xs text-gray-400">جميع الحقوق محفوظة &copy; 2025 - مستشار/ أحمد وجيه</p>
+        <p class="text-xs text-gray-400">جميع الحقوق محفوظة &copy; 2024 - مستشار/أحمد وجيه محمد</p>
     </footer>
 
     <script type="module" src="app.js"></script>
@@ -97,7 +104,7 @@
     </script>
 
     <script>
-        // (نفس كود الثيم السابق)
+        // كود الثيم (كما هو)
         const themeToggleBtn = document.getElementById('theme-toggle');
         const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
         const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
@@ -135,6 +142,57 @@
                     localStorage.setItem('color-theme', 'dark');
                 }
             }
+        });
+    </script>
+
+    <script>
+        // 1. تسجيل عامل الخدمة (Service Worker)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+
+        // 2. التحكم في زر التثبيت
+        let deferredPrompt; // متغير لحفظ حدث التثبيت
+        const installButton = document.getElementById('install-button');
+
+        // المتصفح يطلق هذا الحدث عندما يكون الموقع جاهزاً للتثبيت
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // منع المتصفح من إظهار الـ banner الافتراضي القبيح
+            e.preventDefault();
+            // حفظ الحدث لاستخدامه لاحقاً عند الضغط على الزر
+            deferredPrompt = e;
+            // إظهار زر التثبيت الخاص بنا
+            installButton.classList.remove('hidden');
+            console.log('PWA install prompt ready');
+        });
+
+        // عند الضغط على زر التثبيت
+        installButton.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                // إظهار نافذة التثبيت الأصلية للمتصفح
+                deferredPrompt.prompt();
+                // انتظار اختيار المستخدم (قبول أو رفض)
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to install prompt: ${outcome}`);
+                // تنظيف المتغير لأن الحدث لا يمكن استخدامه إلا مرة واحدة
+                deferredPrompt = null;
+                // إخفاء الزر مرة أخرى
+                installButton.classList.add('hidden');
+            }
+        });
+
+        // (اختياري) الاستماع لحدث إتمام التثبيت بنجاح
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA installed successfully');
+            installButton.classList.add('hidden');
         });
     </script>
 </body>
