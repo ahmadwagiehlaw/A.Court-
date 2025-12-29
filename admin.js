@@ -9,17 +9,16 @@ window.processExcel = async function() {
     
     if (!fileInput.files.length) { alert("من فضلك اختر ملفاً أولاً"); return; }
 
-    // 1. استخراج التاريخ من اسم الملف
     const file = fileInput.files[0];
-    const fileName = file.name.replace(/\.[^/.]+$/, ""); // إزالة الامتداد
-    const sessionDate = fileName.trim(); 
+    // اسم الملف كاحتياطي لو "مصدر البيانات" فاضي
+    const fileName = file.name.replace(/\.[^/.]+$/, "").trim(); 
 
-    // إعداد واجهة التحميل
+    // إعداد الواجهة
     statusArea.classList.remove('hidden');
     progressBar.style.width = "0%";
     progressBar.classList.remove('bg-green-600'); 
     progressBar.classList.add('bg-blue-600');
-    statusText.innerText = `جاري قراءة الملف: ${sessionDate}...`;
+    statusText.innerText = `جاري قراءة الملف...`;
     statusText.classList.remove("text-red-600");
 
     const reader = new FileReader();
@@ -30,57 +29,77 @@ window.processExcel = async function() {
             const workbook = XLSX.read(data, { type: 'array' });
             let allRows = [];
 
-            // 2. الدوران على كل الشيتات
             workbook.SheetNames.forEach(sheetName => {
                 const worksheet = workbook.Sheets[sheetName];
                 const jsonSheet = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                // البحث عن بداية الجدول
+                // البحث عن بداية الجدول (الصف الذي يحتوي على "رقم الطعن")
                 let headerIndex = -1;
                 for (let i = 0; i < jsonSheet.length && i < 30; i++) {
                     const rowStr = JSON.stringify(jsonSheet[i]);
-                    if (rowStr.includes("رقم الطعن") || rowStr.includes("سنة") || rowStr.includes("مقام من")) {
+                    if (rowStr.includes("رقم الطعن")) {
                         headerIndex = i;
                         break;
                     }
                 }
 
-                if (headerIndex === -1) return; // تخطي الشيتات الفارغة
+                if (headerIndex === -1) return; // تخطي الشيت لو مفيهوش جدول
 
                 const rawData = XLSX.utils.sheet_to_json(worksheet, { range: headerIndex });
 
-                // تنظيف البيانات وتجهيزها
                 rawData.forEach(row => {
+                    // تنظيف مفاتيح الصف (إزالة المسافات من أسماء الأعمدة)
                     let cleanRow = {};
                     for (let key in row) cleanRow[key.trim()] = row[key];
 
-                    const caseNum = cleanRow['رقم الطعن'] || cleanRow['الطعن'];
+                    // قراءة البيانات حسب الأسماء الجديدة
+                    const caseNum = cleanRow['رقم الطعن'];
                     
                     if (caseNum) {
-                        const year = cleanRow['سنة'] || cleanRow['السنة'] || '0';
-                        const plaintiff = cleanRow['مقام من'] || cleanRow['المدعي'] || '';
-                        const defendant = cleanRow['ضد'] || cleanRow['المدعى عليه'] || '';
-                        const decision = (cleanRow['القرار الصادر'] || '') + ' ' + (cleanRow['القرار الصادر 2'] || '');
-                        const judge = cleanRow['أسم العضو'] || cleanRow['اسم العضو'] || '';
+                        const sessionDate = cleanRow['تاريخ الجلسة'] || ''; // العمود الجديد
+                        const year = cleanRow['السنة'] || '0';
+                        const plaintiff = cleanRow['الطاعن'] || '';
+                        const defendant = cleanRow['المطعون ضده'] || '';
+                        const judge = cleanRow['القاضي'] || '';
+                        const roll = cleanRow['الرول'] || '';
+                        const dataClass = cleanRow['تصنيف البيانات'] || '';
+                        const notes = cleanRow['Notes'] || cleanRow['ملاحظات'] || '';
+                        const distLetter = cleanRow['حرف التوزيع'] || '';
+                        
+                        // مصدر البيانات: لو العمود فاضي، نأخذه من اسم الملف أو اسم الشيت
+                        const source = cleanRow['مصدر البيانات'] || sheetName; 
 
-                        // توليد ID فريد لمنع التكرار
+                        // دمج الحكم 1 والحكم 2
+                        const decisionPart1 = cleanRow['الحكم'] || '';
+                        const decisionPart2 = cleanRow['الحكم 2'] || '';
+                        const fullDecision = (decisionPart1 + ' ' + decisionPart2).trim();
+
+                        // توليد ID فريد (يعتمد على الرقم والسنة والتاريخ)
                         const cleanCaseNum = String(caseNum).replace(/[^a-zA-Z0-9]/g, "");
                         const cleanYear = String(year).replace(/[^a-zA-Z0-9]/g, "");
                         const cleanDate = String(sessionDate).replace(/[^a-zA-Z0-9-]/g, "");
+                        
+                        // الـ ID: رقم_سنة_تاريخ (لضمان عدم التكرار لنفس الجلسة)
                         const docID = `${cleanCaseNum}_${cleanYear}_${cleanDate}`;
 
                         const record = {
                             id: docID,
                             caseNumber: String(caseNum).trim(),
                             year: String(year).trim(),
+                            sessionDate: String(sessionDate).trim(), // تاريخ الجلسة
+                            dataSource: String(source).trim(),       // مصدر البيانات
+                            dataClass: String(dataClass).trim(),     // التصنيف
+                            roll: String(roll).trim(),               // الرول
                             plaintiff: String(plaintiff).trim(),
                             defendant: String(defendant).trim(),
-                            decision: String(decision).trim(),
+                            decision: fullDecision,                  // الحكم المدمج
                             judge: String(judge).trim(),
-                            sessionDate: sessionDate,
+                            notes: String(notes).trim(),             // ملاحظات
+                            distLetter: String(distLetter).trim(),   // حرف التوزيع
                             uploadedAt: new Date(),
-                            // توليد كلمات البحث (بما فيها الأجزاء)
-                            searchKeywords: generateKeywords(caseNum, year, plaintiff, defendant, decision, sessionDate)
+                            
+                            // كلمات البحث (للبحث الجزئي والشامل)
+                            searchKeywords: generateKeywords(caseNum, year, plaintiff, defendant, fullDecision, sessionDate)
                         };
                         allRows.push(record);
                     }
@@ -88,22 +107,21 @@ window.processExcel = async function() {
             });
 
             if (allRows.length === 0) {
-                statusText.innerText = "لم يتم العثور على بيانات صالحة!";
+                statusText.innerText = "لم يتم العثور على بيانات! تأكد من وجود عمود 'رقم الطعن'";
                 statusText.classList.add("text-red-600");
                 return;
             }
 
-            // 3. الرفع لفايربيس (Batching)
-            statusText.innerText = `جاري معالجة ${allRows.length} حكم...`;
-            
+            // الرفع (Batch Upload)
+            statusText.innerText = `جاري رفع ${allRows.length} سجل...`;
             const batchSize = 450; 
             let batches = [];
             let currentBatch = writeBatch(db);
             let count = 0;
 
             allRows.forEach(docData => {
-                const docRef = doc(db, "rulings", docData.id); // استخدام الـ ID المخصص
-                currentBatch.set(docRef, docData); // Set لتحديث البيانات لو موجودة
+                const docRef = doc(db, "rulings", docData.id);
+                currentBatch.set(docRef, docData);
                 count++;
                 if (count === batchSize) {
                     batches.push(currentBatch);
@@ -113,7 +131,6 @@ window.processExcel = async function() {
             });
             if (count > 0) batches.push(currentBatch);
 
-            // تنفيذ الرفع
             for (let i = 0; i < batches.length; i++) {
                 await batches[i].commit();
                 let percent = Math.round(((i+1)/batches.length)*100);
@@ -121,26 +138,25 @@ window.processExcel = async function() {
                 statusText.innerText = `تم رفع ${percent}% ...`;
             }
 
-            statusText.innerText = "تم الرفع بنجاح! ✅";
+            statusText.innerText = "تم التحديث بنجاح! ✅";
             progressBar.classList.remove('bg-blue-600');
             progressBar.classList.add('bg-green-600');
-            alert(`تم بنجاح معالجة ${allRows.length} حكم.`);
+            alert(`تمت العملية بنجاح. العدد: ${allRows.length}`);
 
         } catch (err) {
             console.error(err);
-            statusText.innerText = "حدث خطأ: " + err.message;
+            statusText.innerText = "خطأ: " + err.message;
             statusText.classList.add("text-red-600");
         }
     };
     reader.readAsArrayBuffer(file);
 };
 
-// دالة توليد كلمات البحث (معدلة للبحث الجزئي)
+// دالة توليد كلمات البحث (بحث جزئي وكامل)
 function generateKeywords(caseNum, year, p, d, dec, date) {
     let keywords = [];
-
-    // 1. تقسيم رقم الطعن لأجزاء (للبحث الجزئي)
-    // مثال: 1234 -> يخزن: "1", "12", "123", "1234"
+    
+    // 1. تجزئة رقم الطعن للبحث الجزئي (1, 12, 123...)
     let c = String(caseNum).trim();
     for (let i = 1; i <= c.length; i++) {
         keywords.push(c.substring(0, i));
@@ -148,9 +164,10 @@ function generateKeywords(caseNum, year, p, d, dec, date) {
 
     // 2. باقي الكلمات
     let text = `${year} ${p} ${d} ${dec} ${date}`;
-    let otherWords = text.split(" ")
-        .map(w => w.trim())
-        .filter(w => w.length > 2); // نخزن الكلمات الأكبر من حرفين
+    // تنظيف النص وتقسيمه لكلمات
+    let otherWords = text.replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g, ' ') // إبقاء العربية والإنجليزية والأرقام
+                         .split(/\s+/)
+                         .filter(w => w.length > 2);
 
     return [...keywords, ...otherWords];
 }
