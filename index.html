@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>محرك بحث قسم الإدارية العليا</title>
+    <title>الإدارية العليا</title>
     <link rel="icon" href="logo.png" type="image/png">
     <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -27,25 +27,25 @@
 <body class="bg-[#f3f4f6] text-gray-800 font-cairo transition-colors duration-300 dark:bg-gray-900 dark:text-gray-100 flex flex-col min-h-screen">
 
     <header class="legal-gradient text-white shadow-xl sticky top-0 z-50 transition-all duration-300">
-        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-            <div class="flex items-center gap-5">
-                <img src="logo.png" alt="لوجو المحكمة" class="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-lg hover:scale-105 transition-transform duration-300">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <img src="logo.png" alt="لوجو المحكمة" class="w-16 h-16 md:w-20 md:h-20 object-contain drop-shadow-lg hover:scale-105 transition-transform duration-300">
                 <div>
-                    <h1 class="text-2xl md:text-3xl font-extrabold leading-tight text-yellow-50 drop-shadow-sm"> الإدارية العليا</h1>
-                    <h2 class="text-yellow-400 font-bold text-sm md:text-base tracking-wide mt-1 border-t border-blue-800/50 pt-2 inline-block opacity-90">
-                        الدائرة العاشرة  
+                    <h1 class="text-xl md:text-2xl font-extrabold leading-tight text-yellow-50 drop-shadow-sm"> الإدارية العليا (أ)</h1>
+                    <h2 class="text-yellow-400 font-bold text-xs md:text-sm tracking-wide mt-1 border-t border-blue-800/50 pt-1 inline-block opacity-90">
+                        الدائرة العاشرة - إزالات
                     </h2>
                 </div>
             </div>
             
             <div class="flex items-center gap-2">
-                <button id="theme-toggle" type="button" class="text-gray-300 hover:text-yellow-400 hover:bg-white/10 p-2.5 rounded-full transition duration-300 focus:outline-none ring-2 ring-transparent focus:ring-yellow-400/50">
-                    <svg id="theme-toggle-light-icon" class="hidden w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 011.414-1.414zM12 10a2 2 0 100 4 2 2 0 000-4z" /></svg>
-                    <svg id="theme-toggle-dark-icon" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                <button id="theme-toggle" type="button" class="text-gray-300 hover:text-yellow-400 hover:bg-white/10 p-2 rounded-full transition duration-300 focus:outline-none ring-2 ring-transparent focus:ring-yellow-400/50">
+                    <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 011.414-1.414zM12 10a2 2 0 100 4 2 2 0 000-4z" /></svg>
+                    <svg id="theme-toggle-dark-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
                 </button>
 
-                <button onclick="checkAdmin()" class="text-gray-300 hover:text-white hover:bg-white/10 p-2.5 rounded-full transition duration-300 focus:outline-none ring-2 ring-transparent focus:ring-blue-400/50" title="إدارة البيانات">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <button onclick="checkAdmin()" class="text-gray-300 hover:text-white hover:bg-white/10 p-2 rounded-full transition duration-300 focus:outline-none ring-2 ring-transparent focus:ring-blue-400/50" title="إدارة البيانات">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -54,33 +54,33 @@
         </div>
     </header>
 
-    <div class="legal-gradient pb-12 pt-10 px-4 rounded-b-[3rem] shadow-inner mb-8 transition-all duration-300">
+    <div class="legal-gradient pb-8 pt-6 px-4 rounded-b-[2.5rem] shadow-inner mb-6 transition-all duration-300">
         <div class="container mx-auto max-w-3xl text-center">
-            <h2 class="text-3xl md:text-4xl font-bold text-white mb-8 drop-shadow-md">بحث في حصر الأحكام</h2>
+            <h2 class="text-2xl md:text-3xl font-bold text-white mb-5 drop-shadow-md">بحث في السوابق القضائية والمبادئ</h2>
             
-            <div class="bg-white dark:bg-gray-800 p-2 rounded-full shadow-2xl flex items-center relative z-10 my-6 transition-colors duration-300 focus-within:ring-4 ring-yellow-500/30">
-               <span class="pl-4 text-gray-400 dark:text-gray-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="bg-white dark:bg-gray-800 py-1 px-2 rounded-full shadow-xl flex items-center relative z-10 my-4 transition-colors duration-300 focus-within:ring-4 ring-yellow-500/30">
+               <span class="pl-3 text-gray-400 dark:text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                </span>
                 <input type="text" id="searchInput" placeholder="ابحث برقم الطعن، اسم الخصم، السنة..." 
-                    class="flex-grow p-3 bg-transparent focus:outline-none text-lg text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500" autocomplete="off">
+                    class="flex-grow py-2 px-3 bg-transparent focus:outline-none text-lg text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500" autocomplete="off">
             </div>
             
-            <div id="searchStatsArea" class="mt-6 flex flex-wrap justify-center gap-3 text-sm text-gray-200 min-h-[2.5rem]"></div>
+            <div id="searchStatsArea" class="mt-4 flex flex-wrap justify-center gap-3 text-sm text-gray-200 min-h-[2rem]"></div>
         </div>
     </div>
 
-    <main class="container mx-auto px-4 pb-12 flex-grow">
+    <main class="container mx-auto px-4 pb-24 flex-grow">
         <div id="resultsArea" class="grid grid-cols-1 gap-5 max-w-4xl mx-auto"></div>
     </main>
 
-    <footer class="bg-gray-800 dark:bg-gray-950 text-white text-center py-6 mt-auto transition-colors duration-300 border-t border-gray-200 dark:border-gray-800">
-        <div class="flex justify-center items-center gap-2 mb-2 opacity-50 hover:opacity-80 transition">
-             <img src="logo.png" alt="لوجو صغير" class="w-8 h-8 grayscale brightness-150">
+    <footer class="fixed bottom-0 left-0 w-full z-40 bg-gray-800 dark:bg-gray-950 text-white text-center py-3 transition-colors duration-300 border-t border-gray-200 dark:border-gray-800 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+        <div class="flex justify-center items-center gap-2 mb-1 opacity-50 hover:opacity-80 transition">
+             <img src="logo.png" alt="لوجو صغير" class="w-6 h-6 grayscale brightness-150">
         </div>
-        <p class="text-sm text-gray-400">جميع الحقوق محفوظة &copy; 2025 - مستشار/ أحمد وجيه محمد</p>
+        <p class="text-xs text-gray-400">جميع الحقوق محفوظة &copy; 2025 - مستشار/ أحمد وجيه</p>
     </footer>
 
     <script type="module" src="app.js"></script>
@@ -88,7 +88,7 @@
     <script>
         function checkAdmin() {
             const password = prompt("🔐 منطقة محمية\nمن فضلك أدخل كلمة مرور المسؤول:");
-            if (password === "a4450422") {
+            if (password === "admin123") {
                 window.location.href = "admin.html";
             } else if (password !== null) {
                 alert("❌ كلمة المرور غير صحيحة!");
@@ -97,6 +97,7 @@
     </script>
 
     <script>
+        // (نفس كود الثيم السابق)
         const themeToggleBtn = document.getElementById('theme-toggle');
         const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
         const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
