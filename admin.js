@@ -1,4 +1,3 @@
-// admin.js
 import { db } from "./firebase-config.js";
 import { collection, writeBatch, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -9,10 +8,17 @@ window.processExcel = async function() {
     
     if (!fileInput.files.length) { alert("اختر الملف أولاً"); return; }
 
-    statusText.innerText = "جاري القراءة...";
+    const file = fileInput.files[0];
+    
+    // --- الذكاء البرمجي: استخراج التاريخ من اسم الملف ---
+    // اسم الملف: "2-9-2024.xlsx" -> النتيجة: "2-9-2024"
+    // ولو الاسم فيه كلام زيادة مثل "2-9-2024 اجندة" سيأخذه كما هو
+    const fileName = file.name.replace(/\.[^/.]+$/, ""); // حذف الامتداد
+    const sessionDate = fileName; // سنستخدم هذا المتغير
+
+    statusText.innerText = `جاري استخراج البيانات من جلسة: ${sessionDate}...`;
     statusText.classList.remove("text-red-600");
     
-    const file = fileInput.files[0];
     const reader = new FileReader();
 
     reader.onload = async function(e) {
@@ -21,47 +27,37 @@ window.processExcel = async function() {
             const workbook = XLSX.read(data, { type: 'array' });
             let allRows = [];
 
-            // اللف على كل الشيتات
             workbook.SheetNames.forEach(sheetName => {
                 const worksheet = workbook.Sheets[sheetName];
-                const jsonSheet = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); // قراءة كصفوف خام
+                const jsonSheet = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                // 1. البحث عن رقم الصف الذي يحتوي على "رقم الطعن"
+                // البحث عن رأس الجدول
                 let headerIndex = -1;
                 for (let i = 0; i < jsonSheet.length && i < 30; i++) {
                     const rowStr = JSON.stringify(jsonSheet[i]);
-                    // نبحث عن كلمات مميزة في الرول
                     if (rowStr.includes("رقم الطعن") || rowStr.includes("سنة") || rowStr.includes("مقام من")) {
                         headerIndex = i;
-                        console.log(`تم العثور على بداية الجدول في الشيت ${sheetName} عند الصف ${i}`);
                         break;
                     }
                 }
 
-                if (headerIndex === -1) return; // تخطي الشيت لو مفيهوش جدول
+                if (headerIndex === -1) return;
 
-                // 2. قراءة البيانات الحقيقية
                 const rawData = XLSX.utils.sheet_to_json(worksheet, { range: headerIndex });
 
-                // 3. تنظيف البيانات
                 rawData.forEach(row => {
-                    // تنظيف المفاتيح من المسافات
                     let cleanRow = {};
-                    for (let key in row) {
-                        cleanRow[key.trim()] = row[key];
-                    }
+                    for (let key in row) cleanRow[key.trim()] = row[key];
 
-                    // استخراج البيانات المهمة
                     const caseNum = cleanRow['رقم الطعن'] || cleanRow['الطعن'];
                     
-                    if (caseNum) { // فقط لو فيه رقم طعن
+                    if (caseNum) {
                         const year = cleanRow['سنة'] || cleanRow['السنة'] || '';
                         const plaintiff = cleanRow['مقام من'] || cleanRow['المدعي'] || '';
                         const defendant = cleanRow['ضد'] || cleanRow['المدعى عليه'] || '';
                         const decision = (cleanRow['القرار الصادر'] || '') + ' ' + (cleanRow['القرار الصادر 2'] || '');
                         const judge = cleanRow['أسم العضو'] || cleanRow['اسم العضو'] || '';
 
-                        // تكوين الكائن النهائي
                         const record = {
                             caseNumber: String(caseNum).trim(),
                             year: String(year).trim(),
@@ -69,9 +65,13 @@ window.processExcel = async function() {
                             defendant: String(defendant).trim(),
                             decision: String(decision).trim(),
                             judge: String(judge).trim(),
+                            
+                            // --- إضافة حقل التاريخ الجديد ---
+                            sessionDate: sessionDate, // أخذناه من اسم الملف
+                            
                             uploadedAt: new Date(),
-                            // كلمات البحث (مهمة جداً)
-                            searchKeywords: generateKeywords(caseNum, year, plaintiff, defendant, decision)
+                            // نضيف التاريخ لكلمات البحث أيضاً
+                            searchKeywords: generateKeywords(caseNum, year, plaintiff, defendant, decision, sessionDate)
                         };
                         allRows.push(record);
                     }
@@ -79,13 +79,13 @@ window.processExcel = async function() {
             });
 
             if (allRows.length === 0) {
-                statusText.innerText = "لم يتم العثور على بيانات! تأكد من شكل الجدول.";
+                statusText.innerText = "لم يتم العثور على بيانات!";
                 statusText.classList.add("text-red-600");
                 return;
             }
 
-            // 4. الرفع لفايربيس (Batch Upload)
-            statusText.innerText = `جاري رفع ${allRows.length} حكم...`;
+            statusText.innerText = `جاري رفع ${allRows.length} حكم لتاريخ ${sessionDate}...`;
+            
             const batchSize = 450; 
             let batches = [];
             let currentBatch = writeBatch(db);
@@ -103,27 +103,26 @@ window.processExcel = async function() {
             });
             if (count > 0) batches.push(currentBatch);
 
-            // تنفيذ الرفع
             for (let i = 0; i < batches.length; i++) {
                 await batches[i].commit();
                 progressBar.style.width = Math.round(((i+1)/batches.length)*100) + "%";
             }
 
             statusText.innerText = "تم الرفع بنجاح! ✅";
-            alert("تم رفع البيانات بنجاح، يمكنك البحث الآن.");
+            alert(`تم رفع الجلسة ${sessionDate} بنجاح.`);
 
         } catch (err) {
             console.error(err);
-            statusText.innerText = "حدث خطأ: " + err.message;
+            statusText.innerText = "خطأ: " + err.message;
         }
     };
     reader.readAsArrayBuffer(file);
 };
 
-// دالة مساعدة لتوليد كلمات البحث
-function generateKeywords(caseNum, year, p, d, dec) {
-    let text = `${caseNum} ${year} ${p} ${d} ${dec}`;
+function generateKeywords(caseNum, year, p, d, dec, date) {
+    // دمجنا التاريخ في البحث
+    let text = `${caseNum} ${year} ${p} ${d} ${dec} ${date}`;
     return text.split(" ")
         .map(w => w.trim())
-        .filter(w => w.length > 2); // نخزن الكلمات الأكبر من حرفين
+        .filter(w => w.length > 2);
 }
